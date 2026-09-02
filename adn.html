@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js - Doble hélice de ADN</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #0d0d1a;
+        }
+        canvas {
+            display: block;
+        }
+        .info {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #e8e8f0;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 8px;
+            pointer-events: none;
+            text-align: center;
+        }
+        .info small {
+            display: block;
+            margin-top: 4px;
+            font-size: 12px;
+            color: #9a9ab0;
+        }
+        .leyenda {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 14px;
+            color: #e8e8f0;
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 14px;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+        .leyenda span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .leyenda i {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        Doble hélice de ADN
+        <small>Arrastra para rotar · rueda para acercar</small>
+    </div>
+
+    <div class="leyenda">
+        <span><i style="background:#4ade80"></i>Adenina</span>
+        <span><i style="background:#f87171"></i>Timina</span>
+        <span><i style="background:#60a5fa"></i>Guanina</span>
+        <span><i style="background:#fbbf24"></i>Citosina</span>
+    </div>
+
+    <!-- Importar Three.js y sus complementos desde CDN -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        // 1. IMPORTAR THREE.JS
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // 2. CREAR ESCENA, CÁMARA Y RENDERIZADOR
+        const escena = new THREE.Scene();
+        escena.background = new THREE.Color(0x0d0d1a);
+        escena.fog = new THREE.Fog(0x0d0d1a, 13, 26);
+
+        const camara = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camara.position.set(0, 0, 11);
+
+        const renderizador = new THREE.WebGLRenderer({ antialias: true });
+        renderizador.setSize(window.innerWidth, window.innerHeight);
+        renderizador.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderizador.domElement);
+
+        // 3. PARÁMETROS DE LA HÉLICE
+        // Proporciones del ADN-B real, a escala 1 unidad = 10 Å:
+        // radio 10 Å, 3.4 Å de subida por par de bases, ~10.5 pares por vuelta.
+        const PARAMS = {
+            pares: 26,
+            radio: 1.0,
+            subidaPorPar: 0.34,
+            giroPorPar: 0.6,      // 2π / 0.6 ≈ 10.5 pares por vuelta
+            desfaseCadenas: 2.4   // < π, esto genera el surco mayor y el menor
+        };
+
+        // Bases nitrogenadas y sus complementarias
+        const BASES = {
+            A: { color: 0x4ade80, complemento: 'T' },
+            T: { color: 0xf87171, complemento: 'A' },
+            G: { color: 0x60a5fa, complemento: 'C' },
+            C: { color: 0xfbbf24, complemento: 'G' }
+        };
+
+        // Secuencia aleatoria para la cadena principal
+        const letras = Object.keys(BASES);
+        const secuencia = Array.from(
+            { length: PARAMS.pares },
+            () => letras[Math.floor(Math.random() * letras.length)]
+        );
+
+        // 4. FUNCIONES AUXILIARES
+
+        // Punto de una cadena para el par de bases i (cadena 0 o 1)
+        function posicion(i, cadena) {
+            const angulo = i * PARAMS.giroPorPar + (cadena === 1 ? PARAMS.desfaseCadenas : 0);
+            const altura = PARAMS.pares * PARAMS.subidaPorPar;
+            return new THREE.Vector3(
+                Math.cos(angulo) * PARAMS.radio,
+                i * PARAMS.subidaPorPar - altura / 2,
+                Math.sin(angulo) * PARAMS.radio
+            );
+        }
+
+        // Cilindro que va de un punto a otro (para los peldaños)
+        function barra(desde, hasta, color) {
+            const direccion = new THREE.Vector3().subVectors(hasta, desde);
+            const largo = direccion.length();
+
+            const geometria = new THREE.CylinderGeometry(0.07, 0.07, largo, 8);
+            const material = new THREE.MeshStandardMaterial({
+                color: color,
+                roughness: 0.4,
+                metalness: 0.1,
+                emissive: new THREE.Color(color).multiplyScalar(0.18)
+            });
+
+            const malla = new THREE.Mesh(geometria, material);
+            malla.position.copy(desde).lerp(hasta, 0.5);
+            // El cilindro nace apuntando en +Y, hay que rotarlo hacia la dirección deseada
+            malla.quaternion.setFromUnitVectors(
+                new THREE.Vector3(0, 1, 0),
+                direccion.normalize()
+            );
+            return malla;
+        }
+
+        // Tubo que sigue una curva (para el esqueleto azúcar-fosfato)
+        function esqueleto(puntos, color) {
+            const curva = new THREE.CatmullRomCurve3(puntos);
+            const geometria = new THREE.TubeGeometry(curva, 250, 0.13, 12, false);
+            const material = new THREE.MeshStandardMaterial({
+                color: color,
+                roughness: 0.35,
+                metalness: 0.4
+            });
+            return new THREE.Mesh(geometria, material);
+        }
+
+        // 5. CONSTRUIR LA MOLÉCULA
+        const adn = new THREE.Group();
+
+        const puntosCadena1 = [];
+        const puntosCadena2 = [];
+
+        for (let i = 0; i < PARAMS.pares; i++) {
+            const p1 = posicion(i, 0);
+            const p2 = posicion(i, 1);
+            puntosCadena1.push(p1);
+            puntosCadena2.push(p2);
+
+            // Cada peldaño son dos mitades: la base y su complementaria
+            const base = secuencia[i];
+            const complemento = BASES[base].complemento;
+            const medio = new THREE.Vector3().copy(p1).lerp(p2, 0.5);
+
+            adn.add(barra(p1, medio, BASES[base].color));
+            adn.add(barra(medio, p2, BASES[complemento].color));
+        }
+
+        adn.add(esqueleto(puntosCadena1, 0x8b8bb8));
+        adn.add(esqueleto(puntosCadena2, 0x8b8bb8));
+
+        escena.add(adn);
+
+        // 6. AÑADIR LUZ
+        const luzAmbiental = new THREE.AmbientLight(0x404060);
+        escena.add(luzAmbiental);
+
+        const luzPrincipal = new THREE.DirectionalLight(0xffffff, 1);
+        luzPrincipal.position.set(5, 5, 5);
+        escena.add(luzPrincipal);
+
+        const luzTrasera = new THREE.DirectionalLight(0x4488ff, 0.6);
+        escena.add(luzTrasera);
+        luzTrasera.position.set(-3, -2, -4);
+
+        // 7. CONTROL CON EL MOUSE
+        const controles = new OrbitControls(camara, renderizador.domElement);
+        controles.enableDamping = true;
+        controles.dampingFactor = 0.06;
+        controles.minDistance = 4;
+        controles.maxDistance = 22;
+
+        // 8. ANIMACIÓN
+        const prefiereMenosMovimiento =
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        function animar() {
+            requestAnimationFrame(animar);
+
+            if (!prefiereMenosMovimiento) {
+                adn.rotation.y += 0.004;
+            }
+
+            controles.update();
+            renderizador.render(escena, camara);
+        }
+
+        animar();
+
+        // 9. MANEJAR REDIMENSIÓN DE VENTANA
+        window.addEventListener('resize', () => {
+            camara.aspect = window.innerWidth / window.innerHeight;
+            camara.updateProjectionMatrix();
+            renderizador.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        console.log('Secuencia generada:', secuencia.join(''));
+    </script>
+</body>
+</html>
