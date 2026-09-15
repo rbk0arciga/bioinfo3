@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visor 3D interactivo con Three.js</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- 1. Lienzo donde el renderer dibuja la escena -->
+    <canvas id="lienzo"></canvas>
+
+    <!-- Título / nombres -->
+    <div id="nombres">VISOR 3D INTERACTIVO CON THREE.JS · RICARDO MELGOZA Y REBECA ARCIGA</div>
+
+    <!-- Panel de información del objeto seleccionado (raycasting) -->
+    <div id="info">
+        <h2>Objeto seleccionado</h2>
+        <p id="info-nombre">Ninguno</p>
+        <p id="info-detalle">Haz clic en un objeto para seleccionarlo</p>
+    </div>
+
+    <!-- Estado de carga del modelo .glb -->
+    <div id="estado">Cargando modelo 3D…</div>
+
+    <!-- Instrucciones -->
+    <div id="instrucciones">
+        🖱️ Arrastra para rotar · Rueda para zoom · Clic derecho para desplazar · Clic para seleccionar
+    </div>
+
+    <!-- Enlace a las respuestas -->
+    <a id="link-respuestas" href="respuestas.html">📄 Ver respuestas</a>
+
+    <!-- Three.js y sus complementos oficiales (única dependencia externa) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="main.js"></script>
+
+</body>
+</html>
