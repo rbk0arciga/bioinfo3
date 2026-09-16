@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Respuestas — Visor 3D interactivo con Three.js</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: system-ui, "Segoe UI", Arial, sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            line-height: 1.7;
+            padding: 40px 20px 60px;
+        }
+
+        main { max-width: 760px; margin: 0 auto; }
+
+        h1 { font-size: 26px; color: #58a6ff; margin-bottom: 4px; }
+
+        .autores {
+            font-size: 13px;
+            letter-spacing: 1px;
+            color: #8b949e;
+            margin-bottom: 28px;
+        }
+
+        section {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            padding: 20px 24px;
+            margin-bottom: 16px;
+        }
+
+        h2 { font-size: 17px; color: #ffd93d; margin-bottom: 10px; }
+
+        p { color: #c9d1d9; }
+        p + p { margin-top: 10px; }
+
+        ul { margin: 10px 0 0 20px; color: #c9d1d9; }
+        li { margin-bottom: 6px; }
+
+        code {
+            background: #21262d;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #4ecdc4;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 14px;
+        }
+
+        th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; }
+        th { background: #21262d; color: #8b949e; }
+
+        a.volver {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 10px 16px;
+            background: #238636;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        a.volver:hover { background: #2ea043; }
+    </style>
+</head>
+<body>
+<main>
+
+    <h1>Visor 3D interactivo con Three.js — Respuestas</h1>
+    <p class="autores">RICARDO MELGOZA Y REBECA ARCIGA</p>
+
+    <section>
+        <h2>¿Qué función cumple la escena en Three.js?</h2>
+        <p>
+            La escena (<code>THREE.Scene</code>) es el contenedor raíz del mundo 3D: dentro de
+            ella se agregan las mallas, las luces, las cámaras y los grupos. Todo lo que no esté
+            añadido a la escena simplemente no se dibuja. Además organiza los objetos como un
+            árbol jerárquico, así que mover o rotar un objeto padre arrastra a todos sus hijos.
+            En nuestro proyecto la escena guarda el plano, el cubo, la esfera, el octaedro,
+            el prisma de 67 caras, el modelo <code>.glb</code> y las tres luces.
+        </p>
+    </section>
+
+    <section>
+        <h2>¿Para qué sirve la cámara?</h2>
+        <p>
+            La cámara define desde dónde y cómo se mira la escena. Usamos una
+            <code>PerspectiveCamera</code>, que imita al ojo humano: los objetos lejanos se ven
+            más pequeños. Sus cuatro parámetros son el campo de visión (50°), la relación de
+            aspecto (ancho ÷ alto de la ventana) y los planos cercano y lejano (0.1 y 100), que
+            delimitan el rango de profundidad que se dibuja. Sin cámara el renderer no sabría
+            qué proyectar en la pantalla.
+        </p>
+    </section>
+
+    <section>
+        <h2>¿Qué hace el renderer?</h2>
+        <p>
+            El renderer (<code>WebGLRenderer</code>) es el motor de dibujo. Recibe la escena y la
+            cámara, calcula la proyección de cada triángulo a la pantalla 2D, aplica materiales,
+            luces y sombras, y escribe el resultado en el <code>&lt;canvas&gt;</code> usando la
+            tarjeta gráfica a través de WebGL. Se le indica el tamaño con <code>setSize()</code> y
+            se le pide un cuadro con <code>render(escena, camara)</code>. En este proyecto también
+            activamos su mapa de sombras (<code>shadowMap.enabled = true</code>).
+        </p>
+    </section>
+
+    <section>
+        <h2>¿Qué permite hacer OrbitControls?</h2>
+        <p>
+            <code>OrbitControls</code> es un complemento oficial de Three.js que hace orbitar la
+            cámara alrededor de un punto objetivo usando el mouse, sin tener que programar nosotros
+            la matemática de la rotación:
+        </p>
+        <ul>
+            <li>Clic izquierdo + arrastrar → rotar alrededor del objetivo</li>
+            <li>Rueda del mouse → acercar y alejar (zoom)</li>
+            <li>Clic derecho + arrastrar → desplazar la vista (pan)</li>
+        </ul>
+        <p>
+            Le configuramos <code>enableDamping</code> para que el movimiento tenga inercia,
+            y límites de distancia y de ángulo para que la cámara no se meta debajo del piso.
+            Como usa damping, hay que llamar <code>controles.update()</code> en cada cuadro.
+        </p>
+    </section>
+
+    <section>
+        <h2>¿Qué es el raycasting y para qué lo usaste?</h2>
+        <p>
+            El raycasting consiste en lanzar un rayo imaginario desde la cámara, pasando por el
+            punto donde el usuario hizo clic, hacia adentro de la escena, y revisar qué objetos
+            atraviesa. Three.js lo resuelve con <code>THREE.Raycaster</code>.
+        </p>
+        <p>
+            Lo usamos para la selección con el mouse. Primero convertimos la posición del clic a
+            coordenadas normalizadas de −1 a 1, luego <code>rayo.setFromCamera(puntero, camara)</code>
+            e <code>intersectObjects()</code> nos devuelve la lista de objetos tocados, ordenada del
+            más cercano al más lejano. Tomamos el primero y, como acción visible, el objeto
+            <strong>cambia de color a blanco</strong>, se le aplica un <strong>resaltado emisivo</strong>,
+            se muestra su <strong>nombre y su ficha técnica</strong> en el panel de la izquierda y se
+            <strong>imprime la información en la consola</strong>.
+        </p>
+    </section>
+
+    <section>
+        <h2>¿Qué dificultades tuviste al cargar modelos .glb o .gltf?</h2>
+        <ul>
+            <li>
+                <strong>CORS y el protocolo <code>file://</code>.</strong> Al abrir el
+                <code>index.html</code> con doble clic, el navegador bloquea la lectura de
+                <code>models/nudo.glb</code>. Se resuelve sirviendo el proyecto por HTTP
+                (Live Server de VS Code, <code>python -m http.server</code> o GitHub Pages).
+            </li>
+            <li>
+                <strong>La carga es asíncrona.</strong> <code>GLTFLoader.load()</code> no
+                devuelve el modelo de inmediato, así que al principio intentábamos usar la
+                variable antes de que existiera y salía <code>undefined</code>. Hubo que mover
+                todo el código que toca el modelo dentro del callback de éxito, y proteger el
+                bucle de animación con <code>if (modelo)</code>.
+            </li>
+            <li>
+                <strong>Un .glb no es una malla, es una jerarquía.</strong> Lo que llega es
+                <code>gltf.scene</code>, un grupo con hijos. Para activar sombras y poder
+                seleccionarlo con el raycaster hubo que recorrerlo con <code>traverse()</code>
+                y trabajar sobre cada hijo que fuera <code>isMesh</code>.
+            </li>
+            <li>
+                <strong>Escala y posición.</strong> El modelo venía en una escala distinta a la
+                de nuestras figuras y aparecía diminuto y hundido en el piso; se ajustó con
+                <code>scale</code> y <code>position</code>.
+            </li>
+            <li>
+                <strong>Rutas.</strong> Un error de mayúsculas o una ruta relativa mal escrita
+                da un 404 silencioso. Agregamos el callback de error para mostrar el aviso en
+                pantalla en vez de quedarnos con la escena a medias.
+            </li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>¿Cómo podrías usar este visor 3D en simulación, videojuegos, bioinformática o modelado 3D?</h2>
+        <table>
+            <tr><th>Área</th><th>Uso posible</th></tr>
+            <tr>
+                <td>Simulación</td>
+                <td>
+                    Visualizar en tiempo real el resultado de un cálculo físico o de ingeniería:
+                    una pieza mecánica que se deforma, el flujo de gente en un edificio o la
+                    trayectoria de un satélite. Al hacer clic sobre un componente se mostrarían
+                    sus valores (temperatura, presión, esfuerzo) en el mismo panel que hoy
+                    muestra el nombre de la figura.
+                </td>
+            </tr>
+            <tr>
+                <td>Videojuegos</td>
+                <td>
+                    Es prácticamente el esqueleto de un juego web: escena, cámara, luces, modelos
+                    <code>.glb</code> y selección con el mouse. Sustituyendo OrbitControls por una
+                    cámara en primera persona y usando el raycasting para apuntar o para detectar
+                    clics sobre enemigos u objetos, ya se tiene la base de la interacción.
+                </td>
+            </tr>
+            <tr>
+                <td>Bioinformática</td>
+                <td>
+                    Mostrar estructuras moleculares: cada esfera sería un átomo y cada cilindro un
+                    enlace. Cargando un archivo PDB convertido a <code>.glb</code> se podría girar
+                    una proteína y, al hacer clic sobre un residuo, desplegar su nombre, su
+                    aminoácido y su posición en la cadena, que es exactamente lo que hace nuestro
+                    raycaster.
+                </td>
+            </tr>
+            <tr>
+                <td>Modelado 3D</td>
+                <td>
+                    Funcionar como visor web para revisar modelos sin instalar Blender: el cliente
+                    abre un enlace, orbita la pieza, la ilumina y hace clic en cada parte para ver
+                    su nombre, material y número de polígonos. También sirve como configurador de
+                    producto, cambiando el color o el material del objeto seleccionado.
+                </td>
+            </tr>
+        </table>
+    </section>
+
+    <a class="volver" href="index.html">← Volver al visor 3D</a>
+
+</main>
+</body>
+</html>
